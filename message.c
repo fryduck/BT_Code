@@ -1,3 +1,10 @@
+/*************************************************************************
+	> File Name: message.c
+	> Author: 
+	> Mail: 
+	> Created Time: 2015年11月29日 星期日 12时33分47秒
+ ************************************************************************/
+
 #include<stdio.h>
 #include<string.h>
 #include<malloc.h>
@@ -354,7 +361,6 @@ int process_bitfield_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-<<<<<<< HEAD
 int process_request_msg(Peer *peer,unsigned char *buff,int len)
 {
     unsigned char c[4];
@@ -535,3 +541,4 @@ int parse_response(Peer *peer)
     peer->buff_len = 0;
     return 0;
 }
+
