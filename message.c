@@ -1,10 +1,3 @@
-/*************************************************************************
-	> File Name: message.c
-	> Author: 
-	> Mail: 
-	> Created Time: 2015年11月29日 星期日 12时33分47秒
- ************************************************************************/
-
 #include<stdio.h>
 #include<string.h>
 #include<malloc.h>
@@ -542,6 +535,3 @@ int parse_response(Peer *peer)
     peer->buff_len = 0;
     return 0;
 }
-=======
-
->>>>>>> 88bf6bf82736b2698207331de7f6dc3a06384538
