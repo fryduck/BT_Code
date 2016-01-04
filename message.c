@@ -1,10 +1,3 @@
-/*************************************************************************
-	> File Name: message.c
-	> Author: 
-	> Mail: 
-	> Created Time: 2015年11月29日 星期日 12时33分47秒
- ************************************************************************/
-
 #include<stdio.h>
 #include<string.h>
 #include<malloc.h>
@@ -542,6 +535,103 @@ int parse_response(Peer *peer)
     peer->buff_len = 0;
     return 0;
 }
-=======
 
->>>>>>> 88bf6bf82736b2698207331de7f6dc3a06384538
+int parse_response_uncomplete_msg(Peer *p,int ok_len)
+{
+    char *tmp_buff;
+    int tmp_buff_len;
+
+    // 分配存储空间，并保存接收缓冲区中不完整的消息
+    tmp_buff_len = p->buff_len - ok_len;
+    if(tmp_buff_len <= 0)    return -1;
+    tmp_buff = (char *)malloc(tmp_buff_len);
+    if(tmp_buff == NULL){
+        printf("%s:%d error\n",__FILE__,__LINE__);
+        return -1;
+    }
+    memcpy(tmp_buff,p->in_buff+ok_len,tmp_buff_len);
+    // 处理接收缓冲区中前面完整的消息
+    p->buff_len = ok_len;
+    parse_response(p);
+    // 将不完整的消息拷贝到接收缓冲区的开始处
+    memcpy(p->in_buff,tmp_buff,tmp_buff_len);
+    p->buff_len = tmp_buff_len;
+    if(tmp_buff != NULL)    free(tmp_buff);
+
+    return 0;
+}
+
+int prepare_send_have_msg()
+{
+    Peer *p = peer_head;
+    int i;
+
+    if(peer_head == NULL)    return -1;
+    if(have_piece_index[0] == -1)    return -1;
+
+    while(p != NULL){
+        for(i = 0;i < 64; i++){
+            if(have_piece_index[i] != -1)  create_have_msg(have_piece_index[i],p);
+            else break;
+        }
+        p = p->next;
+    }
+    for(i=0; i < 64; i++){
+        if(have_piece_index[i] == -1)    break;
+        else have_piece_index[i] = -1;
+    }
+
+    return 0;
+}
+
+int create_response_message(Peer *peer)
+{
+    if(peer == NULL)    return -1;
+    if(peer->state == INITIAL){    //处于intial状态时主动发握手消息
+        peer->state = HALFSHAKED;
+        return 0;
+    }
+    if(peer->state == HALFSHAKED){    //处于握手状态，主动发位图消息
+        if(bitmap == NULL)    return -1;
+        create_bitfiled_msg(bitmap->bitfield,bitmap->bitfield_length,peer);
+        peer->state = SENDBITFIELD;
+        return 0;
+    }
+    // 如果条件允许(未将该peer阻塞，且peer发送过请求)，则主动发送piece消息
+    if(peer->am_choking==0 && peer->Requested_piece_head!=NULL){
+        Rquest_piece *req_p = peer->Request_piece_head;
+        int ret = read_slice_for_send(req_p->index,req_p->begin,req_p->length,peer);
+        if(ret<0)    {printf("read_slice_for_send ERROR\n");}
+        else{
+            if(peer->last_up_timestamp = time(NULL));
+                peer->last_up_timestamp = time(NULL);
+            peer->up_count += req_p->length;
+            peer->up_total += req_p->length;
+
+            peer->Request_piece_head = req_p->next;
+            // 打印提示消息
+            // printf("*** sending a slice TO:%s index:%-5d begin:%-5x ***\n",)
+            // peer->ip,req_p->index,req_p->begin);
+            free(req_p);
+            return 0;
+        }
+    }
+    // 如果3分钟没有收到任何消息关闭连接
+    time_t now = time(NULL);    // 获取当前时间
+    long intervall = now - peer->start_timestamp;
+    if(intervall > 180){
+        peer->state = CLOSING;
+        // 丢弃发送缓冲区中的数据
+        discard_send_buffle(peer);
+        // 将从该peer处下载到的不足一个piece的数据删除
+        clear_btcache_before_peer_close(peer);
+        close(peer->socket);
+    }
+    // 如果45秒没有发送和接收到消息，则发送一个keep_alive消息
+    long intervall2 = now - peer->recet_timestamp;
+    if(intervall>45 && intervall2>45 && peer->msg_len==0)
+        create_keep_alive_msg(peer);
+
+    return 0;
+
+}
