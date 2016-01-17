@@ -354,7 +354,6 @@ int process_bitfield_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-<<<<<<< HEAD
 int process_request_msg(Peer *peer,unsigned char *buff,int len)
 {
     unsigned char c[4];
@@ -635,3 +634,17 @@ int create_response_message(Peer *peer)
     return 0;
 
 }
+
+void discard_send_buffer(Peer *peer)
+{
+    struct linger lin;
+    int lin_len;
+    lin.l_onoff = 1;
+    lin.l_linger = 0;
+    lin_len = sizeof(lin);
+
+    // 通过设置套接字选项来丢弃未发送的数据
+    if(peer->socket > 0){
+        setsockopt(peer->socket,SOL_SOCKET,SO_LINGER,(char *)&lin,lin_len);
+    }
+}:
