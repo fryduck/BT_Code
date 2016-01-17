@@ -354,7 +354,6 @@ int process_bitfield_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-<<<<<<< HEAD
 int process_request_msg(Peer *peer,unsigned char *buff,int len)
 {
     unsigned char c[4];
