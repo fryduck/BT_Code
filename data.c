@@ -107,3 +107,73 @@ int create_btcache()
     return 0;
 }
 
+void release_memory_in_btcache()
+{
+    Btcache *p = btcache_head;
+    while(p != NULL) {
+       btcache_head = p->next;
+       if(p->buff != NULL)    free(p->buff);
+       free(p);
+       p = btcache_head;
+    }
+
+    release_last_piece();
+    if(fds != NULL)    free(fds);
+}
+
+int get_files_count()
+{
+    int count = 0;
+
+    if(is_multi_files() == 0) return 1;
+    Files *p = files_head;
+    while(p != NULL) {
+       count++;
+       p = p->next;
+    }
+
+    return count;
+}
+
+int create_files()
+{
+    int ret,i;
+    char buff[1] = { 0x0 };
+
+    fds_len = get_files_count();
+    if(fds_len < 0)    return -1;
+    fds = (int *)malloc(fds_len * sizeof(int));
+    if(fds == NULL)    return -1;
+
+    if(is_multi_files() == 0){ //待下载的为单文件
+      *fds = open(file_name,O_RDWR|O_CREAT,0777);
+      if(*fds < 0)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
+      ret = lseek(*fds,file_length-1,SEEK_SET);
+      if(ret < 0)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
+      ret = write(*fds,buff,1);
+      if(ret != 1)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
+    } else {    //待下载的是多个文件
+       ret = chdir(file_name);
+       if(ret < 0) {    //改变目录失败，说明该目录还未创建
+         ret = mkdir(file_name,0777);
+         if(ret < 0)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
+         ret = chdir(file_name);
+         if(ret < 0)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
+       }
+       Files *p = files_head;
+       i = 0;
+       while(p != NULL) {
+          fds[i] = open(p->path,O_RDWR|O_CREAT,0777);
+          if(fds[i] < 0)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
+          ret = lseek(fds[i],p->length-1,SEEK_SET);
+          if(fds[i] < 0)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
+          ret = write(fds[i],buff,1);
+          if(ret != 1)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
+          
+          p = p-next;
+          i++;
+       } //while循环结束
+    } // end else
+
+    return 0;
+}
