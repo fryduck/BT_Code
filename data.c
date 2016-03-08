@@ -169,7 +169,8 @@ int create_files()
           if(fds[i] < 0)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
           ret = write(fds[i],buff,1);
           if(ret != 1)    {printf("%s:%d error",__FILE__,__LINE__); return -1;}
-          p = p->next;
+          
+          p = p-next;
           i++;
        } //while循环结束
     } // end else
