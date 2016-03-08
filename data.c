@@ -177,3 +177,80 @@ int create_files()
 
     return 0;
 }
+
+int write_piece_to_harddisk(int sequence,Peer *peer)
+{
+    Btcache *node_ptr = btcache_head, *p;
+    unsigned char piece_hash1[20], piece_hash2[20];
+    int slice_count = piece_length / (16*1024);  //一个piece所含的slice数
+    int index, index_copy;
+
+    if (peer == NULL) return -1;
+    int i = 0;
+    shile(i < sequence)    { node_ptr = node_ptr->next; i++ }
+    p = node_ptr;    // p指针指向piece的第一个slice所在的btcache结点
+
+    // 计算刚刚下载到的piece的hash值
+    SHA1_CTX ctx;
+    SHA1Init(&ctx)；
+    while(slice_count > 0 && node_ptr != NULL) {
+        SHA1Update(&ctx,node_ptr->buff,16*1024);
+        slice_count--;
+        node_ptr = node_ptr->next;
+    }
+    SHA1Final(piece_hash1,&ctx);
+    // 从种子文件中获取该piece的正确的hash值
+    index = p->index *20;
+    index_copy = p->index;    // 存放piece的index
+    for(i=0; i<20; i++)    piece_hash2[i] = pieces[index+i];
+    int ret = memcmp(piece_hash1,piece_hash2,20);
+    if(ret != 0)  { printf("piece hash is wrong\n"); return -1; }
+    // 将该piece的所有slice写入文件
+    node_ptr = p;
+    slice_count = piece_length / (16*1024);
+    while(slice_count > 0)  {
+        write_btcache_node_to_hardsik(node_ptr);
+        // 在peer的请求队列中删除piece请求
+        Request_piece *req_p = peer->Request_piece_head;
+        Request_piece *req_q = peer->Request_piece_head;
+        while(req_p != NULL)  {
+            if(req_p == peer->peer->Request_piece_head) {
+                peer->Request_piece_head = req_p->next;
+            } else {
+                req_q->next = req_p->next;
+            }
+            free(req_p);
+            req_p = req_q = NULL;
+            break;
+        }
+
+        node_ptr->index = -1;
+        node_ptr->begin = -1;
+        node_ptr->length = -1;
+        node_ptr->in_use = 0;
+        node_ptr->read_write = -1;
+        node_ptr->is_full = 0;
+        node_ptr->is_writed = 0;
+        node_ptr->access_count = 0;
+        node_ptr = node_ptr->next;
+        slice_count--;
+    }
+    // 当前处于终端模式，则在peer链表中删除所有对该piece的请求
+    if(end_mode == 1)  delete_request_end_mode(index_copy);
+    // 更新位图
+    set_bit_value(bitmap,index_copy,1);
+    // 保存piece的index，准备将所有的peer发送给have消息
+    for(i = 0; i < 64; i++) {
+        if(have_piece_index[i] == -1) {
+            have_piece_index[i] = index_copy;
+            break;
+        }
+    }
+    // 更新download_piece_num，每下载10个piece就将位图写入文件
+    download_piece_num++;
+    if(download_piece_num % 10 == 0)  restore_bitmap();
+    // 打印出提示消息
+    printf("%%%%% Total piece download:%d %%%%%\n", download_piece_num);
+    printf("writed piece index:%d \n", index_copy);
+    return 0;
+}
