@@ -254,3 +254,67 @@ int write_piece_to_harddisk(int sequence,Peer *peer)
     printf("writed piece index:%d \n", index_copy);
     return 0;
 }
+
+int write_btcache_to_hardsik(Peer *peer)
+{
+    Btcache *p = btcache_head;
+    int slice_count = piece_length / (16*1024);
+    int index_count = 0;
+    int full_count = 0;
+    int first_index;
+
+    while (p != NULL) {
+        if (index_count % slice_count == 0) {
+            full_count = 0;
+            first_index = index_count;
+        }
+        if ( (p->in_use == 1) && (p->read_write == 1) && (p->is_full == 1) && (p->is_writed == 0) ) {
+            full_count++;
+        }
+        if( full_count == slice_count ) {
+            write_piece_to_harddisk(first_index,peer);
+        }
+        index_count++;
+        p = p->next;
+    }
+
+    return 0;
+}
+
+int release_read_btcache_node(int base_count)
+{
+    Btcache *p = btcache_head;
+    Btcache *q = NULL;
+    int count = 0;
+    int used_count = 0;
+    int slice_count = piece_length / (16*1024);
+
+    if (base_count < 0)    return -1;
+    while( p != NULL ) {
+        if (count % slice_count == 0 )      { used_count += 0; q = p; }
+        if (p->in_use == 1 && p->read_write == 0)   used_count += p->access_count;
+        if (used_count == base_count)   break;      // 找到一个空闲的piece
+
+        count++;
+        p = p->next;
+    }
+
+    if (p != NULL) {
+        p = q;
+        while(slice_count > 0) {
+            p->index = -1;
+            p->begin = -1;
+            p->length = -1;
+            p->in_use = 0;
+            p->read_write = -1;
+            p->is_full = 0;
+            p->is_writed = 0;
+            p->access_count = 0;
+
+            slice_count--;
+            p = p->next;
+        }
+    }
+
+    return 0;
+}
