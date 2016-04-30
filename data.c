@@ -317,3 +317,134 @@ int release_read_btcache_node(int base_count)
 
     return 0;
 }
+
+void clear_btcache()
+{
+    Btcache *node = btcache_head;
+    while (node != NULL) {
+        p->index = -1;
+        p->begin = -1;
+        p->length = -1;
+        p->in_use = 0;
+        p->read_write = -1;
+        p->is_full = 0;
+        p->is_writed = 0;
+        p->access_count = 0;
+        node = node->next;
+    }
+}
+
+int write_slice_to_btcache(int index, int begin, int length, unsigned char *buff, int len, Peer *peer)
+{
+    int count = 0, slice_count, unuse_count;
+    Btcache *p = btcache_head, *q = NULL;   // q指针指向每个piece第一个slice
+
+    if (p == NULL)  return -1;
+    if (index >= piece_length/20 || begin > piece_length-16*1024)   return -1;
+    if(buff == NULL || peer == NULL)    return -1;
+    if(index == last_piece_index) {
+        write_slice_to_last_piece(index,begin,length,buff,len,peer);
+        return 0;
+    }
+    // 当处于终端模式，先判断该slice所在的piece是否已被下载
+    if (end_mode == 1) {
+        if ( get_bit_value(bitmap,index) == 1)  return 0;
+    }
+    // 遍历缓冲区，检查当前slice所在piece的其他数据是否已存在
+    // 若存在说明不是一个新的piece，若不存在说明是一个新的piece
+    slice_count = piece_length / (16*1024);
+    while (p != NULL) {
+        if (count % slice_count == 0)   q = p;
+        if (p->index == index && p->in_use == 1)    break;
+
+        count++;
+        p = p->next;
+    }
+
+    // p非空说明slice所在piece的部分数据已经下载
+    if (p != NULL) {
+        count = begin / (16*1024);  // count存放当前要存的slice在pieces中的索引值
+        p = q;
+        while (count > 0)   {
+            p = p->next;
+            count--;
+        }
+
+        if (p->begin == begin && p->in_use == 1 && p->read_write == 1 && p->is_full == 1)
+            return 0;   // 该slice已存在
+        p->index = index;
+        p->begin = begin;
+        p->length = length;
+
+        p->in_use = 1;
+        p->read_write = 1;
+        p->is_full = 1;
+        p->is_writed = 0;
+        p->access_count = 0;
+
+        memcpy(p->buff,buff,len);
+        printf("+++++ write a slice to btcache index:%-6d begin;%-6x +++++\n",index,begin);
+        // 如果是刚刚开始下载(下载到的piece不足１０个)，则立即写入硬盘并告知peer
+        if (download_piece_num < 10) {
+            int sequence;
+            int ret;
+            ret = is_a_complete_piece(index,&sequence);
+            if (ret == 1) {
+                printf("##### begin write a piece to harddisk #####\n");
+                write_piece_to_harddisk(sequence,peer);
+                printf("##### end write a piece to harddisk #####\n");
+            }
+        }
+        return 0;
+    }
+
+    // p为空说明当前slice是其所在的piece第一块下载到的数据
+    // 首先判断是否存在空的缓冲区，若不存在，则将已下载的写入硬盘
+    int i = 4;
+    while (i > 0) {
+        slice_count = piece_length / (16*1024);
+        count = 0;  // 计数当前指向第几个slice
+        unuse_count = 0;
+        Btcache *q;
+        p = btcache_head;
+        while (p != NULL) {
+            if (count % slice_count == 0)   { unuse_count = 0; q = p; }
+            if (p->in_use == 0)     unuse_count++;
+            if (unuse_count == slice_count)     break;  // 找到一个空闲的piece
+
+            count++;
+            p = p->next;
+        }
+
+        if (p != NULL ) {
+            p = q;
+            count = begin / (16*1024);
+            while (count > 0)   { p = p->next; count--; }
+
+            p->index = index;
+            p->begin = begin;
+            p->length = length;
+
+            p->in_use = 1;
+            p->read_write = 1;
+            p->is_full = 1;
+            p->is_writed = 0;
+            p->access_count = 0;
+
+            memcpy(p->buff,buff,len);
+            printf("+++++ write a slice to btcache index:%-6d begin;%-6x +++++\n", index, begin);
+            return 0;
+        }
+
+        if (i == 4)     write_btcache_to_hardsik(peer);
+        if (i == 3)     release_read_btcache_node(16);
+        if (i == 2)     release_read_btcache_node(8);
+        if (i == 1)     release_read_btcache_node(0);
+        i--;
+    }
+
+    // 如果还没有空闲的缓冲区，丢弃下载到的这个slice
+    printf("+++++ write a slice to btcache FAILED :NO BUFFER +++++\n");
+    clear_btcache();
+    return 0;
+}
