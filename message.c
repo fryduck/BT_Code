@@ -36,12 +36,12 @@ extern int have_piece_index[64];   // 在data.c中定义，存放下载到的pie
 extern Peer *peer_head;            // 在peer.c中定义，指向peer链表
 
 
-int int_to_char(int i,unsigned char c[4])
+int int_to_char(int i, unsigned char c[4])
 {
-    c[3] = i%256;
-    c[2] = (i-c[3])/256%256;
-    c[1] = (i-c[3]-c[2]*256)/256/256%256;
-    c[0] = (i-c[3]-c[2]*256-c[1]*256*256)/256/256/256%256;
+    c[3] = i % 256;
+    c[2] = (i-c[3]) / 256 %256;
+    c[1] = (i - c[3] - c[2]*256) / 256 / 256 % 256;
+    c[0] = (i -c[3] -c[2]*256 -c[1]*256*256) / 256 / 256 / 256 % 256;
 
     return 0;
 }
@@ -50,25 +50,25 @@ int char_to_int(unsigned char c[4])
 {
     int i;
 
-    i = c[0]*256*256*256+c[1]*256*256+c[2]*256+c[3];
+    i = c[0]*256*256*256 + c[1]*256*256 + c[2]*256 + c[3];
 
     return i;
 }
 
-int create_handshake_msg(char *info_hash,char *peer_id,Peer *peer)
+int create_handshake_msg(char *info_hash, char *peer_id, Peer *peer)
 {
     int i;
     unsigned char keyword[2] = "BitTorrent protocol", c = 0x00;
     unsigned char *buffer = peer->out_msg + peer->msg_len;
     int len = MSG_SIZE - peer->msg_len;
 
-    if(len < 68) return -1;  // 握手消息的长度固定未68字节
+    if (len < 68) return -1;  // 握手消息的长度固定未68字节
 
     buffer[0] = 19;
-    for(i = 0; i < 19; i++)        buffer[i+1] = keyword[i];
-    for(i = 0; i < 8; i++)         buffer[i+20] = c;
-    for(i = 0; i < 20; i++)        buffer[i+28] = info_hash[i];
-    for(i = 0; i < 20; i++)        buffer[i+48] = peer_id[i];
+    for (i = 0; i < 19; i++)        buffer[i+1] = keyword[i];
+    for (i = 0; i < 8; i++)         buffer[i+20] = c;
+    for (i = 0; i < 20; i++)        buffer[i+28] = info_hash[i];
+    for (i = 0; i < 20; i++)        buffer[i+48] = peer_id[i];
 
     peer->msg_len += 68;
     return 0;
@@ -85,13 +85,13 @@ int create_keep_alive_msg(Peer *peer)
     return 0;
 }
 
-int create_chock_interested_msg(int type,Peer *peer)
+int create_chock_interested_msg(int type, Peer *peer)
 {
     unsigned char *buffer = peer->out_msg + peer->msg_len;
     int len = MSG_SIZE - peer->msg_len;
 
     // chock,unchoke,interested,uninterested消息的长度固定为5
-    if(len < 5)    return -1;
+    if (len < 5)    return -1;
     memset(buffer,0,5);
     buffer[3] = 1;
     buffer[4] = type;
@@ -100,13 +100,13 @@ int create_chock_interested_msg(int type,Peer *peer)
     return 0;
 }
 
-int create_have_msg(int index,Peer *peer)
+int create_have_msg(int index, Peer *peer)
 {
     unsigned char *buffer = peer->out_msg + peer->msg_len;
     int len = MSG_SIZE - peer->msg_len;
     unsigned char c[4];
 
-    if(len < 9)    return -1;    // have消息的长度固定为为9
+    if (len < 9)    return -1;    // have消息的长度固定为为9
     memset(buffer,0,9);
     buffer[3] = 5;
     buffer[4] = 4;
@@ -120,67 +120,67 @@ int create_have_msg(int index,Peer *peer)
     return 0;
 }
 
-int create_bitfiled_msg(char *bitfield,int bitfield_len,Peer *peer)
+int create_bitfiled_msg(char *bitfield, int bitfield_len, Peer *peer)
 {
     int i;
     unsigned char c[4];
     unsigned char *buffer = peer->out_msg + peer->len;
     int len = MSG_SIZE - peer->msg_len;
-    if( len < bitfiled_len + 5 ) {//bitfield消息的长度为bitfield_len+5
+    if (len < bitfiled_len + 5 ) {      //bitfield消息的长度为bitfield_len+5
         printf("%s:%d buffer too small\n",__FILE__,__LINE__);
         return -1;
     }
     int_to_char(bitfield_len+1,c);    //位图消息的负载长度为位图长度加1
-    for(i=0; i <bitfield_len; i++)   buffer[i+5] = bitfield[i];
+    for (i=0; i <bitfield_len; i++)   buffer[i+5] = bitfield[i];
     peer->msg_len + bitfield_len + 5;
     return 0;
 }
 
-int create_request_msg(int index,int begin,int length,Peer *peer)
+int create_request_msg(int index, int begin, int length, Peer *peer)
 {
     int i;
     unsigned char c[4];
     unsigned char *buffer = peer->out_msg + peer->msg_len;
-    if(len < 17)    return -1;    // request消息的长度固定为17
+    if (len < 17)    return -1;    // request消息的长度固定为17
     memset(buffer,0,17);
     buffer[3] = 13;
     buffer[4] = 6;
     int_to_char(index,c);
-    for(i = 0; i < 4; i++)    buffer[i+5] = c[i];
+    for (i = 0; i < 4; i++)    buffer[i+5] = c[i];
     int_to_char(begin,c);
-    for(i = 0; i < 4; i++)    buffer[i+9] = c[i];
+    for (i = 0; i < 4; i++)    buffer[i+9] = c[i];
     int_to_char(length,c)
-    for(i = 0; i < 4; i++)    buffer[i+13] = c[i];
+    for (i = 0; i < 4; i++)    buffer[i+13] = c[i];
     peer->msg_len += 17;
     return 0;
 }
 
-int create_piece_msg(int index,int begin,char *block,int b_len,Peer *peer)
+int create_piece_msg(int index, int begin, char *block, int b_len,Peer *peer)
 {
     int i;
     unsigned char c[4];
     unsigned char *buffer = peer->out_msg + peer->msg_len;
     int len = MSG_SIZE - peer->msg_len;
-    if( len < b_len+13 )  {  // piece消息的长度为b_len+13
+    if (len < b_len+13 )  {  // piece消息的长度为b_len+13
         printf("%s:%d buffer too small\n",__FILE__,__LINE__);
         return -1;
     }
     int_to_char(b_len+9,c);
-    for(i = 0; i < 4; i++)    buffer[i] = c[i];
+    for (i = 0; i < 4; i++)    buffer[i] = c[i];
     buffer[4] = 7;
     int_to_char(index,c);
-    for(i = 0; i < 4; i++)    buffer[i+5] = c[i];
+    for (i = 0; i < 4; i++)    buffer[i+5] = c[i];
     int_to_char(begin,c);
-    for(i = 0; i < 4; i++)    buffer[i+9] = c[i];
-    for(i = 0; i < b_len; i++)    buffer[i+13] = block[i];
+    for (i = 0; i < 4; i++)    buffer[i+9] = c[i];
+    for (i = 0; i < b_len; i++)    buffer[i+13] = block[i];
     peer->msg_len += b_len+13;
     return 0;
 }
 
-int process_handshake_msg(Peer *peer,unsigned char *buffer,int len)
+int process_handshake_msg(Peer *peer, unsigned char *buffer, int len)
 {
-    if(peer=NULL || buffer==NULL)    return -1;
-    if(memcmp(info_hash,buff+,20) != 0)    { // 若info_hash不一致则关闭连接
+    if (peer==NULL || buffer==NULL)    return -1;
+    if (memcmp(info_hash,buff+,20) != 0)    { // 若info_hash不一致则关闭连接
         peer->state = CLOSING;
         // 丢弃发送缓冲区中的数据
         discard_send_buffer(peer);
@@ -192,19 +192,19 @@ int process_handshake_msg(Peer *peer,unsigned char *buffer,int len)
     memcpy(peer->id,buffer+48,20);
     (peer->id)[20] = '\0';
     // 若当前处于Initial状态，则发送握手消息给peer
-    if(peer->state == INITIAL){
+    if (peer->state == INITIAL){
         create_handshake_msg(info_hash,peer_id,peer);
         peer->state = HANDSHAKED;
     }
     // 若握手消息已发送，则状态转换为已握手状态
-    if(peer->state == HALFSHAKED)    peer->state = HANDSHAKED;
+    if (peer->state == HALFSHAKED)    peer->state = HANDSHAKED;
     // 记录最近收到该peer消息的时间
     // 若一定时间内（如两分钟）未收到来自该peer的任何消息，则关闭连接
     peer->state_timestamp = time(NULL);
     return 0;
 }
 
-int process_keep_alive_msg(Peer *peer,unsigned char *buff,int len)
+int process_keep_alive_msg(Peer *peer, unsigned char *buff, int len)
 {
     if (peer==NULL || buff==NULL) return -1;
     // 记录最近收到该peer消息的时间
@@ -213,7 +213,7 @@ int process_keep_alive_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-int process_choke_msg(Peer *peer,unsigned char *buff,int len)
+int process_choke_msg(Peer *peer, unsigned char *buff, int len)
 {
     if (peer==NULL || buff==NULL) return -1;
     // 若原先处于unchoke状态，收到该消息后更新peer中某些变量的值
@@ -228,9 +228,9 @@ int process_choke_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-int process_unchoke_msg(Peer *peer,unsigned char *buff,int len)
+int process_unchoke_msg(Peer *peer, unsigned char *buff, int len)
 {
-    if(peer == NULL || buff==NULL) return -1;
+    if (peer == NULL || buff==NULL) return -1;
     // 若原来处于choke状态且与该peer的连接未被关闭
     if (peer->state != CLOSING && peer->peer_choking == 1) {
         peer->peer_choking = 0;
@@ -251,9 +251,9 @@ int process_unchoke_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-int process_interested_msg(Peer *peer,unsigned char *buff,int len)
+int process_interested_msg(Peer *peer, unsigned char *buff, int len)
 {
-    if(peer == NULL || buff==NULL) return -1;
+    if (peer == NULL || buff==NULL) return -1;
     // 若原来处于choke状态且与该peer的连接未被关闭
     if (peer->state != CLOSING && peer->state == DATA) {
         peer->peer_interested = is_interested(bitmap, &(peer->bitmap));
@@ -265,9 +265,9 @@ int process_interested_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-int process_uninterested_msg(Peer *peer,unsigned char *buff,int len)
+int process_uninterested_msg(Peer *peer, unsigned char *buff, int len)
 {
-    if(peer == NULL || buff==NULL) return -1;
+    if (peer == NULL || buff==NULL) return -1;
     // 若原来处于choke状态且与该peer的连接未被关闭
     if (peer->state != CLOSING && peer->state == DATA) {
         peer->peer_interested = 0;
@@ -278,12 +278,12 @@ int process_uninterested_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-int process_have_msg(Peer *peer,unsigned char *buff,int len)
+int process_have_msg(Peer *peer, unsigned char *buff, int len)
 {
     int rand_num;
     unsigned char c[4];
 
-    if(peer == NULL || buff==NULL) return -1;
+    if (peer == NULL || buff==NULL) return -1;
     srand(time(NULL));
     rand_num = rand() % 3;    // 生成一个0～2的随机数
     // 若原来处于choke状态且与该peer的连接未被关闭
@@ -306,11 +306,11 @@ int process_have_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-int process_bitfield_msg(Peer *peer,unsigned char *buff,int len)
+int process_bitfield_msg(Peer *peer, unsigned char *buff, int len)
 {
     unsigned char c[4];
 
-    if(peer == NULL || buff==NULL) return -1;
+    if (peer == NULL || buff==NULL) return -1;
     if (peer->state != HANDSHAKED && peer->state == SENDBITFIELD) {
         c[0] = buff[0]; c[1] = buff[1];
         c[2] = buff[2]; c[3] = buff[3];
@@ -354,13 +354,13 @@ int process_bitfield_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-int process_request_msg(Peer *peer,unsigned char *buff,int len)
+int process_request_msg(Peer *peer, unsigned char *buff, int len)
 {
     unsigned char c[4];
     int index,begin,length;
     Request_piece *request_piece,*p;
-    if(peer==NULL || buff==NULL) return -1;
-    if(peer->am_choking==0 && peer->peer_interested==1){
+    if (peer==NULL || buff==NULL) return -1;
+    if (peer->am_choking==0 && peer->peer_interested==1) {
         c[0] = buff[5]; c[1] = buff[6];
         c[2] = buff[7]; c[3] = buff[8];
         index = char_to_int(c);
@@ -373,13 +373,13 @@ int process_request_msg(Peer *peer,unsigned char *buff,int len)
 
         // 查看该请求是否已存在，若已存在，则不进行处理
         p = peer->Request_piece_head;
-        while(p!=NULL){
-            if(p->index==index && p->begin==begin && p->length==length){
+        while (p!=NULL) {
+            if (p->index == index && p->begin == begin && p->length == length) {
                 break;
             }
-            p=p->next;
+            p = p->next;
         }
-        if(p!=NULL) return 0;
+        if ( p!= NULL) return 0;
 
         //将请求加入到请求队列中
         request_piece = (Request_piece *)malloc(sizeof(Request_piece));
@@ -391,11 +391,11 @@ int process_request_msg(Peer *peer,unsigned char *buff,int len)
         Request_piece->begin = begin;
         Request_piece->length = length;
         Request_piece->next = NULL;
-        if(peer->Requested_piece_head == NULL)
-          peer->Requested_piece_head = Request_piece;
-        else{
+        if (peer->Requested_piece_head == NULL)
+           peer->Requested_piece_head = Request_piece;
+        else {
           p = peer->Requested_piece_head;
-          while(p->next != NULL) p=p->next;
+          while (p->next != NULL) p = p->next;
           p->next = request_piece;
         }
         // 打印提示信息
@@ -406,13 +406,13 @@ int process_request_msg(Peer *peer,unsigned char *buff,int len)
     return 0;
 }
 
-int process_piece_msg(Peer *peer,unsigned char *buff,int len)
+int process_piece_msg(Peer *peer, unsigned char *buff, int len)
 {
     unsigned char c[4];
     int index,begin,length;
     Request_piece *p;
-    if(peer==NULL || buff==NULL) return -1;
-    if(peer->peer_choking==0){
+    if(peer == NULL || buff == NULL) return -1;
+    if(peer->peer_choking == 0) {
         c[0] = buff[0]; c[1] = buff[1];
         c[2] = buff[2]; c[3] = buff[3];
         length = char_to_int(c) - 9;
@@ -424,15 +424,15 @@ int process_piece_msg(Peer *peer,unsigned char *buff,int len)
         begin = char_to_int(c);
         // 判断收到的slice是否是请求过的
         p = peer->Request_piece_head;
-        while(p!=NULL){
-            if(p->index==index && p->begin==begin && p->length==length)
-              break;
+        while (p != NULL) {
+            if (p->index == index && p->begin == begin && p->length == length)
+                break;
             p = p->next;
         }
-        if(p == NULL) {printf("did not found matched request\n");return -1;}
+        if (p == NULL) {printf("did not found matched request\n");return -1;}
         // 开始计时，并累计收到数据的字节数
-        if(peer->last_down_timestamp == 0)
-           peer->last_down_timestamp = time(NULL);
+        if (peer->last_down_timestamp == 0)
+            peer->last_down_timestamp = time(NULL);
         peer->down_count += length;
         peer->down_total += length;
         // 将收到的数据写入缓冲区中
@@ -453,49 +453,49 @@ int parse_response(Peer *peer)
     unsigned char *buff = peer->in_buff; //in_buff为接收缓冲区
     int len = peer->buff_len; // buff_len为接收缓冲区中有效数据的长度
 
-    if(buff==NULL || peer==NULL) return -1;
+    if (buff == NULL || peer == NULL) return -1;
     btkeyword[0] = 19;
     memcpy(&btkeyword[1],"BitTorrent protocol",19); // BitTorrent协议关键字
 
     // 分别处理12种消息
-    for(index = 0; index < len;){
-        if((len-index >= 68)&&(memcmp(&buff[index],btkeyword,20)==0)){
+    for (index = 0; index < len;) {
+        if ((len-index >= 68)&&(memcmp(&buff[index],btkeyword,20)==0)) {
             process_handshake_msg(peer,buff+index,68);
             index += 68;
         }
-        else if((len-index >= 4)&&(memcmp(&buff[index],keep_alive,4)==0)){
+        else if ((len-index >= 4)&&(memcmp(&buff[index],keep_alive,4)==0)) {
             process_keep_alive_msg(peer,buff+index,4);
             index += 4;
         }
-        else if((len-index >= 5)&&(buff[index+4]==CHOKE)){
+        else if ((len-index >= 5) && (buff[index+4] == CHOKE)){
             process_choke_msg(peer,buff+index,5);
             index += 5;
         }
-        else if((len-index >= 5)&&(buff[index+4]==UNCHOKE)){
+        else if ((len-index >= 5) && (buff[index+4] == UNCHOKE)) {
             process_choke_msg(peer,buff+index,5);
             index += 5;
         }
-        else if((len-index >= 5)&&(buff[index+4]==INTERESTED)){
+        else if ((len-index >= 5) && (buff[index+4] == INTERESTED)) {
             process_interested_msg(peer,buff+index,5);
             index += 5;
         }
-        else if((len-index >= 5)&&(buff[index+4]==UNINTERSETED)){
+        else if ((len-index >= 5) && (buff[index+4] == UNINTERSETED)) {
             process_uninterested_msg(peer,buff+index,5);
             index += 5;
         }
-        else if((len-index >= 9)&&(buff[index+4]==HAVE)){
+        else if ((len-index >= 9) && (buff[index+4] == HAVE)) {
             process_have_msg(peer,buff+index,9);
             index += 9;
         }
-        else if((len-index >= 5)&&(buff[index+4]==BITFIELD)){
+        else if ((len-index >= 5)&&(buff[index+4]==BITFIELD)) {
             process_bitfield_msg(peer,buff+index,peer->bitmap.bitfield_length+5);
             index += peer->bitmap.bitfield_length + 5;
         }
-        else if((len-index >= 17)&&(buff[index+4]==REQUEST)){
+        else if ((len-index >= 17)&&(buff[index+4]==REQUEST)) {
             process_request_msg(peer,buff+index,17);
             index += 17;
         }
-        else if((len-index >= 13)&&(buff[index+4]==PIECE)){
+        else if ((len-index >= 13)&&(buff[index+4]==PIECE)) {
             unsigned char c[4];
             int length;
             c[0] = buff[index]; c[1] = buff[index+1];
@@ -504,22 +504,22 @@ int parse_response(Peer *peer)
             process_piece_msg(peer,buff+index,length+13);
             index += length+13; // length+13为piece消息的长度
         }
-        else if((len-index >= 17)&&(buff[index+4]==CANCEL)){
+        else if ((len-index >= 17)&&(buff[index+4]==CANCEL)) {
             process_cancel_msg(peer,buff+index,17);
             index += 17;
         }
-        else if((len-index >= 7)&&(buff[index+4]==PORT)){
+        else if ((len-index >= 7)&&(buff[index+4]==PORT)) {
             index += 7;
         }
-        else{
+        else {
             // 如果是未知的消息类型，则跳过不予处理
             unsigned char c[4];
             int length;
-            if(index+4 <= len){
+            if (index+4 <= len) {
                 c[0] = buff[index]; c[1] = buff[index+1];
                 c[2] = buff[index+2]; c[3] = buff[index+3];
                 length = char_to_int(c);
-                if(index+4+length <= len){
+                if (index+4+length <= len) {
                     index += 4+length;
                     continue;
                 }
@@ -535,16 +535,16 @@ int parse_response(Peer *peer)
     return 0;
 }
 
-int parse_response_uncomplete_msg(Peer *p,int ok_len)
+int parse_response_uncomplete_msg(Peer *p, int ok_len)
 {
     char *tmp_buff;
     int tmp_buff_len;
 
     // 分配存储空间，并保存接收缓冲区中不完整的消息
     tmp_buff_len = p->buff_len - ok_len;
-    if(tmp_buff_len <= 0)    return -1;
+    if (tmp_buff_len <= 0)    return -1;
     tmp_buff = (char *)malloc(tmp_buff_len);
-    if(tmp_buff == NULL){
+    if (tmp_buff == NULL) {
         printf("%s:%d error\n",__FILE__,__LINE__);
         return -1;
     }
@@ -565,18 +565,18 @@ int prepare_send_have_msg()
     Peer *p = peer_head;
     int i;
 
-    if(peer_head == NULL)    return -1;
-    if(have_piece_index[0] == -1)    return -1;
+    if (peer_head == NULL)    return -1;
+    if (have_piece_index[0] == -1)    return -1;
 
-    while(p != NULL){
-        for(i = 0;i < 64; i++){
-            if(have_piece_index[i] != -1)  create_have_msg(have_piece_index[i],p);
+    while (p != NULL) {
+        for (i = 0;i < 64; i++) {
+            if (have_piece_index[i] != -1)  create_have_msg(have_piece_index[i],p);
             else break;
         }
         p = p->next;
     }
-    for(i=0; i < 64; i++){
-        if(have_piece_index[i] == -1)    break;
+    for (i=0; i < 64; i++) {
+        if (have_piece_index[i] == -1)    break;
         else have_piece_index[i] = -1;
     }
 
@@ -585,24 +585,24 @@ int prepare_send_have_msg()
 
 int create_response_message(Peer *peer)
 {
-    if(peer == NULL)    return -1;
-    if(peer->state == INITIAL){    //处于intial状态时主动发握手消息
+    if (peer == NULL)    return -1;
+    if (peer->state == INITIAL) {    //处于intial状态时主动发握手消息
         peer->state = HALFSHAKED;
         return 0;
     }
-    if(peer->state == HALFSHAKED){    //处于握手状态，主动发位图消息
-        if(bitmap == NULL)    return -1;
+    if (peer->state == HALFSHAKED) {    //处于握手状态，主动发位图消息
+        if (bitmap == NULL)    return -1;
         create_bitfiled_msg(bitmap->bitfield,bitmap->bitfield_length,peer);
         peer->state = SENDBITFIELD;
         return 0;
     }
     // 如果条件允许(未将该peer阻塞，且peer发送过请求)，则主动发送piece消息
-    if(peer->am_choking==0 && peer->Requested_piece_head!=NULL){
+    if (peer->am_choking==0 && peer->Requested_piece_head!=NULL) {
         Rquest_piece *req_p = peer->Request_piece_head;
         int ret = read_slice_for_send(req_p->index,req_p->begin,req_p->length,peer);
-        if(ret<0)    {printf("read_slice_for_send ERROR\n");}
-        else{
-            if(peer->last_up_timestamp = time(NULL));
+        if (ret<0)    {printf("read_slice_for_send ERROR\n"); }
+        else {
+            if (peer->last_up_timestamp = time(NULL));
                 peer->last_up_timestamp = time(NULL);
             peer->up_count += req_p->length;
             peer->up_total += req_p->length;
@@ -618,7 +618,7 @@ int create_response_message(Peer *peer)
     // 如果3分钟没有收到任何消息关闭连接
     time_t now = time(NULL);    // 获取当前时间
     long intervall = now - peer->start_timestamp;
-    if(intervall > 180){
+    if (intervall > 180) {
         peer->state = CLOSING;
         // 丢弃发送缓冲区中的数据
         discard_send_buffle(peer);
@@ -628,7 +628,7 @@ int create_response_message(Peer *peer)
     }
     // 如果45秒没有发送和接收到消息，则发送一个keep_alive消息
     long intervall2 = now - peer->recet_timestamp;
-    if(intervall>45 && intervall2>45 && peer->msg_len==0)
+    if (intervall > 45 && intervall2 > 45 && peer->msg_len == 0)
         create_keep_alive_msg(peer);
 
     return 0;
@@ -644,7 +644,49 @@ void discard_send_buffer(Peer *peer)
     lin_len = sizeof(lin);
 
     // 通过设置套接字选项来丢弃未发送的数据
-    if(peer->socket > 0){
+    if (peer->socket > 0) {
         setsockopt(peer->socket,SOL_SOCKET,SO_LINGER,(char *)&lin,lin_len);
     }
 }:
+
+int create_cancel_msg(int index, int begin, int length, Peer *peer)
+{
+    int i;
+    unsigned char c[4];
+    unsigned char *buffer = peer->out_msg + peer->msg_len;
+    int len = MSG_SIZE - peer->msg_len;
+
+    if (len < 17)   return -1;      // cancel消息的长度固定为17
+    memset(buffer,0,17);
+    buffer[3] = 13;
+    buffer[4] = 8;
+    int_to_char(index,c);
+    for (i = 0; i < 4; i++)     buffer[i+5] = c[i];
+    int_to_char(begin,c);
+    for (i = 0; i < 4; i++)     buffer[i+9] = c[i];
+    int_to_char(length,c);
+    for (i = 0; i < 4; i++)     buffer[i+13] = c[i];
+
+    peer->msg_len += 17;
+    return 0;
+}
+
+int create_port_msg(int port, Peer *peer)
+{
+    unsigned char c[2];
+    unsigned char *buffer = peer->out_msg + peer->msg_len;
+    int len = MSG_SIZE - peer->msg_len;
+
+    if (len < 7)   return -1;       // port消息的长度固定为7
+    memset(buffer,0,7);
+    buffer[3] = 3;
+    buffer[4] = 9;
+    int_to_char(port,c);
+    buffer[5] = c[0];
+    buffer[6] = c[1];
+
+    peer->msg_len += 7;
+    return 0;
+}
+
+int is_complete_message(unsigned char *buffer, unsigned int len, int *ok_len);
